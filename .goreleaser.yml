@@ -1,0 +1,93 @@
+project_name: ygg
+
+before:
+  hooks:
+    - go mod tidy
+    - go test -v ./...
+
+builds:
+  - id: ygg
+    main: ./cmd/ygg
+    binary: ygg
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+
+archives:
+  - id: ygg
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE*
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+  groups:
+    - title: Features
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: Bug Fixes
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 1
+    - title: Other
+      order: 999
+
+brews:
+  - name: ygg
+    repository:
+      owner: joch
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    homepage: "https://github.com/joch/ygg"
+    description: "Git worktree manager for Claude Code"
+    license: "MIT"
+    test: |
+      system "#{bin}/ygg", "--version"
+    install: |
+      bin.install "ygg"
+      
+      # Install shell completions
+      bash_completion.install "completions/ygg.bash" => "ygg"
+      zsh_completion.install "completions/ygg.zsh" => "_ygg"
+      fish_completion.install "completions/ygg.fish"
+
+completions:
+  - bash:
+      output: completions/ygg.bash
+  - zsh:
+      output: completions/ygg.zsh
+  - fish:
+      output: completions/ygg.fish
