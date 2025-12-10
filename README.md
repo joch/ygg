@@ -4,11 +4,20 @@ A simple CLI tool for managing git worktrees. Create feature branches in isolate
 
 ## Installation
 
+### Homebrew
+
+```bash
+brew install joch/ygg/ygg
+```
+
+### Go
+
 ```bash
 go install github.com/joch/ygg/cmd/ygg@latest
 ```
 
-Or build from source:
+### From source
+
 ```bash
 go build -o ygg ./cmd/ygg
 ```
