@@ -65,14 +65,14 @@ brews:
   - name: ygg
     repository:
       owner: joch
-      name: homebrew-tap
+      name: ygg
       branch: main
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+      directory: HomebrewFormula
     commit_author:
       name: goreleaserbot
       email: bot@goreleaser.com
     homepage: "https://github.com/joch/ygg"
-    description: "Git worktree manager for Claude Code"
+    description: "Simple CLI for managing git worktrees"
     license: "MIT"
     test: |
       system "#{bin}/ygg", "--version"

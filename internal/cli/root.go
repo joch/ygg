@@ -9,10 +9,16 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "ygg",
-	Short: "Git worktree helper",
-	Long:  `Ygg is a simple CLI tool for managing git worktrees.`,
+	Use:          "ygg",
+	Short:        "Git worktree helper",
+	Long:         `Ygg is a simple CLI tool for managing git worktrees.`,
 	SilenceUsage: true,
+}
+
+// SetVersion sets the version information for the CLI
+func SetVersion(version, commit, date string) {
+	rootCmd.Version = version
+	rootCmd.SetVersionTemplate(fmt.Sprintf("ygg %s (commit: %s, built: %s)\n", version, commit, date))
 }
 
 func Execute() error {
