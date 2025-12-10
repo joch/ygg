@@ -14,43 +14,43 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         go-version: ['1.21', '1.22']
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go-version }}
-    
+
     - name: Cache Go modules
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
-    
+
     - name: Install dependencies
       run: go mod download
-    
+
     - name: Run tests
       run: go test -v -race -coverprofile=coverage.out ./...
-    
+
     - name: Upload coverage
       if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.22'
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: ./coverage.out
         flags: unittests
         name: codecov-umbrella
-    
+
     - name: Run go vet
       run: go vet ./...
-    
+
     - name: Install staticcheck
       run: go install honnef.co/go/tools/cmd/staticcheck@latest
-    
+
     - name: Run staticcheck
       run: staticcheck ./...
 
@@ -61,23 +61,23 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         go-version: ['1.22']
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go-version }}
-    
+
     - name: Build
       run: go build -v -o ygg${{ matrix.os == 'windows-latest' && '.exe' || '' }} cmd/ygg/main.go
-    
+
     - name: Test binary
       run: ./ygg${{ matrix.os == 'windows-latest' && '.exe' || '' }} --version || ./ygg${{ matrix.os == 'windows-latest' && '.exe' || '' }} --help
-    
+
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ygg-${{ matrix.os }}
         path: ygg${{ matrix.os == 'windows-latest' && '.exe' || '' }}
@@ -85,17 +85,17 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version: '1.22'
-    
+
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v3
+      uses: golangci/golangci-lint-action@v6
       with:
         version: latest
         args: --timeout=5m
