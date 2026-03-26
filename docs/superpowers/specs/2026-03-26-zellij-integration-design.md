@@ -17,15 +17,16 @@ Two exported functions:
 
 Returns true if `ZELLIJ` env var is set.
 
-### `OpenTab(dir, name string) error`
+### `OpenTab(dir, repoName, worktreeName string) error`
 
 Opens or focuses a zellij tab for the given worktree:
 
-1. Run `zellij action query-tab-names` to get existing tab names
-2. If a tab named `name` exists: run `zellij action go-to-tab-name <name>` to focus it
-3. If no tab exists: run `zellij action new-tab --name <name> --cwd <dir>` to create one
+1. Build tab name as `<repoName>/<worktreeName>` (e.g., `ygg/my-feature`)
+2. Run `zellij action query-tab-names` to get existing tab names
+3. If a tab with that name exists: run `zellij action go-to-tab-name <name>` to focus it
+4. If no tab exists: run `zellij action new-tab --name <name> --cwd <dir>` to create one
 
-Tab names match the worktree name (e.g., `my-feature`).
+The repo name comes from `Manager.repoName` (the base directory name of the git repo root).
 
 ## Changes to Existing Code
 
@@ -35,7 +36,7 @@ After worktree creation, before calling `shell.Spawn()`:
 
 ```
 if zellij.InZellij() {
-    return zellij.OpenTab(wt.Path, wt.Name)
+    return zellij.OpenTab(wt.Path, wm.RepoName(), wt.Name)
 }
 ```
 
