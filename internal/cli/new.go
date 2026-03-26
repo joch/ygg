@@ -66,6 +66,13 @@ func runNew(cmd *cobra.Command, args []string) error {
 
 	success("Created worktree at %s", wt.Path)
 
+	// Report on copied files
+	if wt.CopyError != nil {
+		info("Warning: failed to copy some files: %v", wt.CopyError)
+	} else if wt.CopiedFiles > 0 {
+		info("Copied %d untracked file(s) from main worktree", wt.CopiedFiles)
+	}
+
 	// If already in a ygg shell, just output cd command for the wrapper to eval
 	if InYggShell() {
 		fmt.Printf("cd %s\n", wt.Path)

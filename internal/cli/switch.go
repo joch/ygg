@@ -10,9 +10,9 @@ import (
 )
 
 var switchCmd = &cobra.Command{
-	Use:               "switch <name>",
-	Short:             "Switch to a worktree",
-	Long:              `Switch to an existing worktree by name.
+	Use:   "switch <name>",
+	Short: "Switch to a worktree",
+	Long: `Switch to an existing worktree by name.
 
 This spawns a subshell in the worktree directory.
 Exit the subshell to return to your original directory.`,

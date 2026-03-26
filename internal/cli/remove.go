@@ -17,7 +17,7 @@ var removeCmd = &cobra.Command{
 	Long: `Remove a worktree and return to main.
 
 If no name is given and you're inside a worktree, removes the current one.
-Use --force to remove even with uncommitted changes.`,
+Use --force to remove even with uncommitted changes or unmerged branches.`,
 	Aliases:           []string{"rm"},
 	Args:              cobra.MaximumNArgs(1),
 	RunE:              runRemove,
@@ -61,6 +61,14 @@ func runRemove(cmd *cobra.Command, args []string) error {
 			info("Commit or stash your changes, or use --force")
 			return fmt.Errorf("uncommitted changes")
 		}
+		if !forceRemove {
+			merged, err := wm.IsBranchMerged(wt.Branch)
+			if err == nil && !merged {
+				errorMsg("Branch %s has not been merged", wt.Branch)
+				info("Merge your changes first, or use --force to remove anyway")
+				return fmt.Errorf("unmerged branch")
+			}
+		}
 		// Check if we're inside this worktree
 		current, _ := wm.Current()
 		needsCd = current != nil && current.Name == worktreeName
@@ -80,6 +88,14 @@ func runRemove(cmd *cobra.Command, args []string) error {
 			errorMsg("Worktree %s has uncommitted changes", current.Name)
 			info("Commit or stash your changes, or use --force")
 			return fmt.Errorf("uncommitted changes")
+		}
+		if !forceRemove {
+			merged, err := wm.IsBranchMerged(current.Branch)
+			if err == nil && !merged {
+				errorMsg("Branch %s has not been merged", current.Branch)
+				info("Merge your changes first, or use --force to remove anyway")
+				return fmt.Errorf("unmerged branch")
+			}
 		}
 		worktreeName = current.Name
 		needsCd = true

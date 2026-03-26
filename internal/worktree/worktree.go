@@ -9,12 +9,14 @@ import (
 )
 
 type Worktree struct {
-	Name      string
-	Path      string
-	Branch    string
-	IsBare    bool
-	IsLocked  bool
-	IsPrimary bool
+	Name        string
+	Path        string
+	Branch      string
+	IsBare      bool
+	IsLocked    bool
+	IsPrimary   bool
+	CopiedFiles int   // Number of untracked files copied during creation
+	CopyError   error // Error during file copy (non-fatal)
 }
 
 type Manager struct {
@@ -24,7 +26,7 @@ type Manager struct {
 }
 
 // NewManager creates a worktree manager for the repository at the given path.
-// Worktrees are stored in ../.ygg-worktrees/<repo-name>/
+// Worktrees are stored in ../.worktrees/<repo-name>/
 func NewManager(path string) (*Manager, error) {
 	repoRoot, err := FindRepoRoot(path)
 	if err != nil {
@@ -32,8 +34,8 @@ func NewManager(path string) (*Manager, error) {
 	}
 
 	repoName := filepath.Base(repoRoot)
-	// Place worktrees as sibling to repo: ../.ygg-worktrees/<repo-name>/
-	baseDir := filepath.Join(filepath.Dir(repoRoot), ".ygg-worktrees", repoName)
+	// Place worktrees as sibling to repo: ../.worktrees/<repo-name>/
+	baseDir := filepath.Join(filepath.Dir(repoRoot), ".worktrees", repoName)
 
 	return &Manager{
 		repoPath: repoRoot,
@@ -144,10 +146,15 @@ func (m *Manager) Create(name string) (*Worktree, error) {
 		}
 	}
 
+	// Copy untracked/ignored files from main worktree
+	copied, copyErr := CopyUntrackedFiles(m.repoPath, worktreePath)
+
 	return &Worktree{
-		Name:   name,
-		Path:   worktreePath,
-		Branch: name,
+		Name:        name,
+		Path:        worktreePath,
+		Branch:      name,
+		CopiedFiles: copied,
+		CopyError:   copyErr,
 	}, nil
 }
 
@@ -228,6 +235,31 @@ func (m *Manager) MergedBranches(into string) ([]string, error) {
 		}
 	}
 	return branches, nil
+}
+
+// IsBranchMerged checks if a branch has been merged into the default branch.
+func (m *Manager) IsBranchMerged(branch string) (bool, error) {
+	defaultBranch, err := m.DefaultBranch()
+	if err != nil {
+		return false, err
+	}
+
+	// The branch itself is considered "merged" if it's the default branch
+	if branch == defaultBranch {
+		return true, nil
+	}
+
+	merged, err := m.MergedBranches(defaultBranch)
+	if err != nil {
+		return false, err
+	}
+
+	for _, b := range merged {
+		if b == branch {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // Current returns the worktree for the current working directory.
