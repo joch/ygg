@@ -26,7 +26,7 @@ type Manager struct {
 }
 
 // NewManager creates a worktree manager for the repository at the given path.
-// Worktrees are stored in ../.worktrees/<repo-name>/
+// Worktrees are stored in <repo-root>/.worktrees/
 func NewManager(path string) (*Manager, error) {
 	repoRoot, err := FindRepoRoot(path)
 	if err != nil {
@@ -34,8 +34,8 @@ func NewManager(path string) (*Manager, error) {
 	}
 
 	repoName := filepath.Base(repoRoot)
-	// Place worktrees as sibling to repo: ../.worktrees/<repo-name>/
-	baseDir := filepath.Join(filepath.Dir(repoRoot), ".worktrees", repoName)
+	// Place worktrees inside repo root: <repo>/.worktrees/<branch-name>/
+	baseDir := filepath.Join(repoRoot, ".worktrees")
 
 	return &Manager{
 		repoPath: repoRoot,

@@ -36,7 +36,7 @@ This will:
 2. Create a new worktree with branch `my-feature` based on the default branch
 3. Enter a subshell in the new worktree directory
 
-Worktrees are created at `../.worktrees/<repo-name>/<feature-name>`.
+Worktrees are created at `.worktrees/<feature-name>` inside the repository root.
 
 ### List worktrees
 
