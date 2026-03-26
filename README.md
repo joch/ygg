@@ -108,6 +108,15 @@ When inside a ygg shell, `$YGG_WORKTREE` is set to the current worktree name. Ad
 PS1='${YGG_WORKTREE:+[$YGG_WORKTREE] }'$PS1
 ```
 
+## Zellij Integration
+
+When running inside a [zellij](https://zellij.dev/) session, ygg automatically creates named tabs instead of spawning subshells. No configuration needed — it detects zellij via the `ZELLIJ` environment variable.
+
+- `ygg new my-feature` creates a tab named `<repo>/my-feature` with the worktree as the working directory
+- `ygg switch my-feature` focuses the existing tab, or creates one if it doesn't exist
+
+If zellij commands fail for any reason, ygg falls back to the normal subshell behavior.
+
 ## How it works
 
 ygg spawns subshells in worktree directories. When you're done, `exit` to return to where you started.
