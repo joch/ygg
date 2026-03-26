@@ -65,10 +65,10 @@ changelog:
 
 brews:
   - name: ygg
-    directory: HomebrewFormula
+    directory: Formula
     repository:
       owner: joch
-      name: ygg
+      name: homebrew-ygg
       branch: main
     commit_author:
       name: goreleaserbot

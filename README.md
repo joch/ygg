@@ -7,7 +7,7 @@ A simple CLI tool for managing git worktrees. Create feature branches in isolate
 ### Homebrew
 
 ```bash
-brew tap joch/ygg https://github.com/joch/ygg
+brew tap joch/ygg
 brew install ygg
 ```
 
