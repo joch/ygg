@@ -30,14 +30,17 @@ func OpenTab(dir, repoName, worktreeName string) error {
 		return fmt.Errorf("failed to query zellij tabs: %w", err)
 	}
 
-	for _, line := range strings.Split(strings.TrimSpace(string(output)), "\n") {
-		if strings.TrimSpace(line) == name {
-			// Tab exists, focus it
-			focus := exec.Command("zellij", "action", "go-to-tab-name", name)
-			if err := focus.Run(); err != nil {
-				return fmt.Errorf("failed to focus zellij tab %q: %w", name, err)
+	tabs := strings.TrimSpace(string(output))
+	if tabs != "" {
+		for _, line := range strings.Split(tabs, "\n") {
+			if strings.TrimSpace(line) == name {
+				// Tab exists, focus it
+				focus := exec.Command("zellij", "action", "go-to-tab-name", name)
+				if err := focus.Run(); err != nil {
+					return fmt.Errorf("failed to focus zellij tab %q: %w", name, err)
+				}
+				return nil
 			}
-			return nil
 		}
 	}
 

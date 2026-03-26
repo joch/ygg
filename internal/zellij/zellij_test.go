@@ -1,13 +1,11 @@
 package zellij
 
 import (
-	"os"
 	"testing"
 )
 
 func TestInZellij_WhenSet(t *testing.T) {
-	os.Setenv("ZELLIJ", "0")
-	defer os.Unsetenv("ZELLIJ")
+	t.Setenv("ZELLIJ", "0")
 
 	if !InZellij() {
 		t.Error("expected InZellij() to return true when ZELLIJ is set")
@@ -15,7 +13,7 @@ func TestInZellij_WhenSet(t *testing.T) {
 }
 
 func TestInZellij_WhenUnset(t *testing.T) {
-	os.Unsetenv("ZELLIJ")
+	t.Setenv("ZELLIJ", "")
 
 	if InZellij() {
 		t.Error("expected InZellij() to return false when ZELLIJ is unset")
