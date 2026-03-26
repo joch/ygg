@@ -5,23 +5,23 @@
 class Ygg < Formula
   desc "Simple CLI for managing git worktrees"
   homepage "https://github.com/joch/ygg"
-  version "0.1.0"
+  version "0.2.0"
   license "MIT"
 
   on_macos do
     if Hardware::CPU.intel?
-      url "https://github.com/joch/ygg/releases/download/v0.1.0/ygg_0.1.0_Darwin_x86_64.tar.gz"
-      sha256 "2f6188d5b01002764e59f737d29135895dcf78d1e9cc7744521310921ffcf4a7"
+      url "https://github.com/joch/ygg/releases/download/v0.2.0/ygg_0.2.0_Darwin_x86_64.tar.gz"
+      sha256 "9db4487cacbb61e6476e7c1877d0cad493482b23cf3994c198fbef3149a49e39"
 
-      def install
+      define_method(:install) do
         bin.install "ygg"
       end
     end
     if Hardware::CPU.arm?
-      url "https://github.com/joch/ygg/releases/download/v0.1.0/ygg_0.1.0_Darwin_arm64.tar.gz"
-      sha256 "d6b7924eb24c509fc050200d4932ae3def171f0a02bcddfd2b651533c4c6e7a4"
+      url "https://github.com/joch/ygg/releases/download/v0.2.0/ygg_0.2.0_Darwin_arm64.tar.gz"
+      sha256 "45fed71684f2713dd5707cf9f623e81c12427785392f6d6f94bada337a35e37d"
 
-      def install
+      define_method(:install) do
         bin.install "ygg"
       end
     end
@@ -29,16 +29,16 @@ class Ygg < Formula
 
   on_linux do
     if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
-      url "https://github.com/joch/ygg/releases/download/v0.1.0/ygg_0.1.0_Linux_x86_64.tar.gz"
-      sha256 "2896b6c26de4d92e3ef1165c3098f9063dc1511cb6835a116835750efbe256ce"
-      def install
+      url "https://github.com/joch/ygg/releases/download/v0.2.0/ygg_0.2.0_Linux_x86_64.tar.gz"
+      sha256 "d1a5d1c6df4bade4c96b3e91ba50e323e2f14939ea9dea302951755e023ebf6b"
+      define_method(:install) do
         bin.install "ygg"
       end
     end
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-      url "https://github.com/joch/ygg/releases/download/v0.1.0/ygg_0.1.0_Linux_arm64.tar.gz"
-      sha256 "44a1a9e5a4ba93eed8c07316d28243e8ad2888a796493527213ada3616445236"
-      def install
+      url "https://github.com/joch/ygg/releases/download/v0.2.0/ygg_0.2.0_Linux_arm64.tar.gz"
+      sha256 "4a91635e33b504a361048428ea50d443f0f18dcbaff83486e8da878ddd8624a2"
+      define_method(:install) do
         bin.install "ygg"
       end
     end
