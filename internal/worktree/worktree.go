@@ -295,21 +295,25 @@ func (m *Manager) Current() (*Worktree, error) {
 	return nil, fmt.Errorf("not in a worktree")
 }
 
-// FindRepoRoot finds the git repository root from any path.
+// FindRepoRoot finds the main git repository root from any path,
+// including from inside a worktree.
 func FindRepoRoot(path string) (string, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return "", err
 	}
 
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	// Use --git-common-dir to always resolve to the main repo's .git dir,
+	// even when inside a worktree (--show-toplevel returns the worktree root).
+	cmd := exec.Command("git", "rev-parse", "--path-format=absolute", "--git-common-dir")
 	cmd.Dir = absPath
 	output, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("not a git repository: %s", absPath)
 	}
 
-	return strings.TrimSpace(string(output)), nil
+	gitDir := strings.TrimSpace(string(output))
+	return filepath.Dir(gitDir), nil
 }
 
 func parseWorktreeList(output string) ([]*Worktree, error) {
