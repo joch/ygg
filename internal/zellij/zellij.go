@@ -51,3 +51,38 @@ func OpenTab(dir, repoName, worktreeName string) error {
 	}
 	return nil
 }
+
+// CloseTab closes a zellij tab matching the given worktree, if it exists.
+// This is best-effort — errors are returned but callers may choose to ignore them.
+func CloseTab(repoName, worktreeName string) error {
+	name := TabName(repoName, worktreeName)
+
+	// Check if tab exists
+	cmd := exec.Command("zellij", "action", "query-tab-names")
+	output, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("failed to query zellij tabs: %w", err)
+	}
+
+	tabs := strings.TrimSpace(string(output))
+	if tabs == "" {
+		return nil
+	}
+
+	for _, line := range strings.Split(tabs, "\n") {
+		if strings.TrimSpace(line) == name {
+			// Focus the tab first, then close it
+			focus := exec.Command("zellij", "action", "go-to-tab-name", name)
+			if err := focus.Run(); err != nil {
+				return fmt.Errorf("failed to focus zellij tab %q: %w", name, err)
+			}
+			close := exec.Command("zellij", "action", "close-tab")
+			if err := close.Run(); err != nil {
+				return fmt.Errorf("failed to close zellij tab %q: %w", name, err)
+			}
+			return nil
+		}
+	}
+
+	return nil
+}
