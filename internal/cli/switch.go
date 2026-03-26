@@ -6,6 +6,7 @@ import (
 
 	"github.com/joch/ygg/internal/shell"
 	"github.com/joch/ygg/internal/worktree"
+	"github.com/joch/ygg/internal/zellij"
 	"github.com/spf13/cobra"
 )
 
@@ -52,7 +53,16 @@ func runSwitch(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Otherwise spawn a subshell
+	// Use zellij tab if inside zellij, otherwise spawn a subshell
+	if zellij.InZellij() {
+		info("Switching to zellij tab...")
+		if err := zellij.OpenTab(wt.Path, wm.RepoName(), wt.Name); err != nil {
+			info("Zellij failed, falling back to subshell: %v", err)
+			return shell.Spawn(wt.Path, wt.Name)
+		}
+		return nil
+	}
+
 	info("Entering %s (exit to return)...", wt.Name)
 	return shell.Spawn(wt.Path, wt.Name)
 }
