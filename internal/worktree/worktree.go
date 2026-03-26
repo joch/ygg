@@ -54,6 +54,11 @@ func (m *Manager) BaseDir() string {
 	return m.baseDir
 }
 
+// RepoName returns the repository name (base directory name).
+func (m *Manager) RepoName() string {
+	return m.repoName
+}
+
 // DefaultBranch returns the default branch (main, master, etc).
 func (m *Manager) DefaultBranch() (string, error) {
 	// Try to get from remote HEAD
