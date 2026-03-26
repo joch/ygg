@@ -2,7 +2,9 @@
 
 A simple CLI tool for managing git worktrees. Create feature branches in isolated directories, switch between them easily, and clean up when done.
 
-[![Demo](https://img.youtube.com/vi/8Q8iZ4TkUUc/maxresdefault.jpg)](https://youtu.be/8Q8iZ4TkUUc)
+**[Watch the demo video](https://youtu.be/8Q8iZ4TkUUc)**
+
+[![Demo video](https://img.youtube.com/vi/8Q8iZ4TkUUc/maxresdefault.jpg)](https://youtu.be/8Q8iZ4TkUUc)
 
 ## Installation
 
