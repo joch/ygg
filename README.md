@@ -62,7 +62,7 @@ ygg remove             # remove current worktree
 ygg rm my-feature      # alias
 ```
 
-Use `--force` to remove even with uncommitted changes.
+Use `--force` to remove even with uncommitted changes or unmerged branches.
 
 ### Clean up merged worktrees
 
