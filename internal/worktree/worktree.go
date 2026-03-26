@@ -286,10 +286,18 @@ func (m *Manager) Current() (*Worktree, error) {
 		return nil, err
 	}
 
+	// Find the most specific match (longest path wins), since worktrees
+	// inside the repo root are prefixed by the primary worktree path.
+	var best *Worktree
 	for _, wt := range worktrees {
 		if strings.HasPrefix(cwd, wt.Path) {
-			return wt, nil
+			if best == nil || len(wt.Path) > len(best.Path) {
+				best = wt
+			}
 		}
+	}
+	if best != nil {
+		return best, nil
 	}
 
 	return nil, fmt.Errorf("not in a worktree")
