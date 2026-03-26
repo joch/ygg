@@ -59,6 +59,13 @@ func (m *Manager) RepoName() string {
 	return m.repoName
 }
 
+// IsWorktreeDirIgnored checks if .worktrees is in .gitignore.
+func (m *Manager) IsWorktreeDirIgnored() bool {
+	cmd := exec.Command("git", "check-ignore", "-q", ".worktrees")
+	cmd.Dir = m.repoPath
+	return cmd.Run() == nil
+}
+
 // DefaultBranch returns the default branch (main, master, etc).
 func (m *Manager) DefaultBranch() (string, error) {
 	// Try to get from remote HEAD

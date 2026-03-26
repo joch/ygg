@@ -67,6 +67,11 @@ func runNew(cmd *cobra.Command, args []string) error {
 
 	success("Created worktree at %s", wt.Path)
 
+	// Warn if .worktrees is not in .gitignore
+	if !wm.IsWorktreeDirIgnored() {
+		info("Warning: .worktrees is not in .gitignore — consider adding it")
+	}
+
 	// Report on copied files
 	if wt.CopyError != nil {
 		info("Warning: failed to copy some files: %v", wt.CopyError)
