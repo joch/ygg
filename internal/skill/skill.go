@@ -19,7 +19,7 @@ type Target struct {
 // Targets lists all supported agent skill directories.
 var Targets = []Target{
 	{Name: "Claude Code", RelDir: filepath.Join(".claude", "skills", "ygg")},
-	{Name: "Codex", RelDir: filepath.Join(".agents", "skills", "ygg")},
+	{Name: "Codex", RelDir: filepath.Join(".codex", "skills", "ygg")},
 }
 
 // InstallResult holds the outcome of installing to one target.
