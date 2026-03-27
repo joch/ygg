@@ -65,8 +65,12 @@ func Uninstall(homeDir string) []UninstallResult {
 	for i, t := range Targets {
 		dir := filepath.Join(homeDir, t.RelDir)
 
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			results[i] = UninstallResult{Found: false}
+		if _, err := os.Stat(dir); err != nil {
+			if os.IsNotExist(err) {
+				results[i] = UninstallResult{Found: false}
+			} else {
+				results[i] = UninstallResult{Found: false, Err: fmt.Errorf("check directory: %w", err)}
+			}
 			continue
 		}
 
