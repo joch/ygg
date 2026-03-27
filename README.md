@@ -121,6 +121,27 @@ When running inside a [zellij](https://zellij.dev/) session, ygg automatically c
 
 If zellij commands fail for any reason, ygg falls back to the normal subshell behavior.
 
+## Agent Skills
+
+ygg includes a skill file for AI coding agents that teaches them how to use ygg for worktree management.
+
+### Supported agents
+
+- [Claude Code](https://github.com/anthropics/claude-code)
+- [Codex](https://github.com/openai/codex)
+
+### Install
+
+```bash
+ygg skill install
+```
+
+### Uninstall
+
+```bash
+ygg skill uninstall
+```
+
 ## How it works
 
 ygg spawns subshells in worktree directories. When you're done, `exit` to return to where you started.
