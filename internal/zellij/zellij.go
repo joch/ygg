@@ -44,8 +44,16 @@ func OpenTab(dir, repoName, worktreeName string) error {
 		}
 	}
 
-	// Tab doesn't exist, create it
-	create := exec.Command("zellij", "action", "new-tab", "--name", name, "--cwd", dir)
+	// Tab doesn't exist, create it.
+	// As of zellij 0.44, `new-tab --cwd` is only honored when an INITIAL_COMMAND is
+	// supplied — without one the default shell starts in $HOME. Pass $SHELL
+	// explicitly so --cwd takes effect, and --close-on-exit so the pane behaves
+	// like a normal shell tab (closes on exit instead of respawning).
+	shell := os.Getenv("SHELL")
+	if shell == "" {
+		shell = "/bin/sh"
+	}
+	create := exec.Command("zellij", "action", "new-tab", "--name", name, "--cwd", dir, "--close-on-exit", "--", shell)
 	if err := create.Run(); err != nil {
 		return fmt.Errorf("failed to create zellij tab %q: %w", name, err)
 	}
