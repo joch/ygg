@@ -12,6 +12,7 @@ type Worktree struct {
 	Name        string
 	Path        string
 	Branch      string
+	Base        string // Ref the new branch was based on (empty when checking out an existing branch)
 	IsBare      bool
 	IsLocked    bool
 	IsPrimary   bool
@@ -90,6 +91,65 @@ func (m *Manager) DefaultBranch() (string, error) {
 	return "", fmt.Errorf("could not detect default branch")
 }
 
+// BaseRef returns the effective tip of the default branch — the ref new
+// worktrees are based on and that merge detection is measured against. It
+// prefers the freshly fetched origin/<defaultBranch> remote-tracking ref so it
+// reflects the latest upstream even when the local default branch is stale
+// (the common "forgot to pull" case) — but only when origin is ahead of, or
+// equal to, the local branch. When the local branch has commits origin lacks
+// (committed directly to it, or fetch failed offline), or the two have
+// diverged, the local branch wins so those commits are never silently dropped.
+// Falls back to the local branch when no remote-tracking ref exists.
+//
+// The returned ref is fully qualified (refs/remotes/... or refs/heads/...) so it
+// stays unambiguous when passed to git even in repos that have a local branch
+// named e.g. "origin/main". Use DisplayRef for user-facing output.
+func (m *Manager) BaseRef(defaultBranch string) string {
+	remoteRef := "refs/remotes/origin/" + defaultBranch
+	localRef := "refs/heads/" + defaultBranch
+	hasRemote := m.refExists(remoteRef)
+	hasLocal := m.refExists(localRef)
+
+	switch {
+	case hasRemote && hasLocal:
+		// Use origin only when the local branch is an ancestor of it
+		// (origin is ahead or identical); otherwise keep local.
+		if m.isAncestor(localRef, remoteRef) {
+			return remoteRef
+		}
+		return localRef
+	case hasRemote:
+		return remoteRef
+	default:
+		return localRef
+	}
+}
+
+// DisplayRef shortens a fully-qualified ref for user-facing output, e.g.
+// refs/remotes/origin/main -> origin/main and refs/heads/main -> main.
+func DisplayRef(ref string) string {
+	for _, prefix := range []string{"refs/remotes/", "refs/heads/"} {
+		if s := strings.TrimPrefix(ref, prefix); s != ref {
+			return s
+		}
+	}
+	return ref
+}
+
+// refExists reports whether the given fully-qualified ref resolves in the repo.
+func (m *Manager) refExists(ref string) bool {
+	cmd := exec.Command("git", "rev-parse", "--verify", "--quiet", ref)
+	cmd.Dir = m.repoPath
+	return cmd.Run() == nil
+}
+
+// isAncestor reports whether ref a is an ancestor of (or identical to) ref b.
+func (m *Manager) isAncestor(a, b string) bool {
+	cmd := exec.Command("git", "merge-base", "--is-ancestor", a, b)
+	cmd.Dir = m.repoPath
+	return cmd.Run() == nil
+}
+
 // Fetch fetches from origin.
 func (m *Manager) Fetch() error {
 	cmd := exec.Command("git", "fetch", "origin")
@@ -97,17 +157,6 @@ func (m *Manager) Fetch() error {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("git fetch failed: %w\n%s", err, output)
-	}
-	return nil
-}
-
-// Pull pulls the current branch from origin.
-func (m *Manager) Pull() error {
-	cmd := exec.Command("git", "pull")
-	cmd.Dir = m.repoPath
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("git pull failed: %w\n%s", err, output)
 	}
 	return nil
 }
@@ -140,22 +189,24 @@ func (m *Manager) Create(name string) (*Worktree, error) {
 		return nil, fmt.Errorf("failed to detect default branch: %w", err)
 	}
 
-	// Create worktree with new branch based on default branch
-	cmd := exec.Command("git", "worktree", "add", "-b", name, worktreePath, defaultBranch)
+	var base string
+	var cmd *exec.Cmd
+	if m.refExists("refs/heads/" + name) {
+		// A branch with this name already exists — check it out into the new
+		// worktree as-is, without re-pointing it at a base ref.
+		cmd = exec.Command("git", "worktree", "add", worktreePath, name)
+	} else {
+		// Base the new branch on the freshly fetched origin/<default> tip when
+		// it is ahead of the local branch (the "forgot to pull" case),
+		// otherwise on the local default branch — see BaseRef. --no-track keeps
+		// the new branch from adopting origin/<default> as its upstream.
+		base = m.BaseRef(defaultBranch)
+		cmd = exec.Command("git", "worktree", "add", "--no-track", "-b", name, worktreePath, base)
+	}
 	cmd.Dir = m.repoPath
 
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		// Branch might already exist, try without -b
-		if strings.Contains(string(output), "already exists") {
-			cmd = exec.Command("git", "worktree", "add", worktreePath, name)
-			cmd.Dir = m.repoPath
-			output, err = cmd.CombinedOutput()
-		}
-
-		if err != nil {
-			return nil, fmt.Errorf("failed to create worktree: %w\n%s", err, output)
-		}
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return nil, fmt.Errorf("failed to create worktree: %w\n%s", err, output)
 	}
 
 	// Copy untracked/ignored files from main worktree
@@ -165,6 +216,7 @@ func (m *Manager) Create(name string) (*Worktree, error) {
 		Name:        name,
 		Path:        worktreePath,
 		Branch:      name,
+		Base:        DisplayRef(base),
 		CopiedFiles: copied,
 		CopyError:   copyErr,
 	}, nil
@@ -261,7 +313,9 @@ func (m *Manager) IsBranchMerged(branch string) (bool, error) {
 		return true, nil
 	}
 
-	merged, err := m.MergedBranches(defaultBranch)
+	// Measure against the resolved default tip (origin/<default> when local is
+	// stale) so a branch merged upstream is recognized even before a local pull.
+	merged, err := m.MergedBranches(m.BaseRef(defaultBranch))
 	if err != nil {
 		return false, err
 	}
