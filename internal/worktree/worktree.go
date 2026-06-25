@@ -99,25 +99,41 @@ func (m *Manager) DefaultBranch() (string, error) {
 // equal to, the local branch. When the local branch has commits origin lacks
 // (committed directly to it, or fetch failed offline), or the two have
 // diverged, the local branch wins so those commits are never silently dropped.
-// Falls back to the local branch name when no remote-tracking ref exists.
+// Falls back to the local branch when no remote-tracking ref exists.
+//
+// The returned ref is fully qualified (refs/remotes/... or refs/heads/...) so it
+// stays unambiguous when passed to git even in repos that have a local branch
+// named e.g. "origin/main". Use DisplayRef for user-facing output.
 func (m *Manager) BaseRef(defaultBranch string) string {
-	remoteRef := "origin/" + defaultBranch
-	hasRemote := m.refExists("refs/remotes/" + remoteRef)
-	hasLocal := m.refExists("refs/heads/" + defaultBranch)
+	remoteRef := "refs/remotes/origin/" + defaultBranch
+	localRef := "refs/heads/" + defaultBranch
+	hasRemote := m.refExists(remoteRef)
+	hasLocal := m.refExists(localRef)
 
 	switch {
 	case hasRemote && hasLocal:
 		// Use origin only when the local branch is an ancestor of it
 		// (origin is ahead or identical); otherwise keep local.
-		if m.isAncestor(defaultBranch, remoteRef) {
+		if m.isAncestor(localRef, remoteRef) {
 			return remoteRef
 		}
-		return defaultBranch
+		return localRef
 	case hasRemote:
 		return remoteRef
 	default:
-		return defaultBranch
+		return localRef
 	}
+}
+
+// DisplayRef shortens a fully-qualified ref for user-facing output, e.g.
+// refs/remotes/origin/main -> origin/main and refs/heads/main -> main.
+func DisplayRef(ref string) string {
+	for _, prefix := range []string{"refs/remotes/", "refs/heads/"} {
+		if s := strings.TrimPrefix(ref, prefix); s != ref {
+			return s
+		}
+	}
+	return ref
 }
 
 // refExists reports whether the given fully-qualified ref resolves in the repo.
@@ -200,7 +216,7 @@ func (m *Manager) Create(name string) (*Worktree, error) {
 		Name:        name,
 		Path:        worktreePath,
 		Branch:      name,
-		Base:        base,
+		Base:        DisplayRef(base),
 		CopiedFiles: copied,
 		CopyError:   copyErr,
 	}, nil

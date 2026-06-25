@@ -97,6 +97,39 @@ func TestCreateBasesOnFreshOrigin(t *testing.T) {
 	}
 }
 
+// TestBaseRefQualifiesRemoteRef verifies BaseRef returns a fully-qualified
+// remote-tracking ref so it stays unambiguous even when a local branch named
+// "origin/<default>" exists — otherwise the short name "origin/main" is
+// ambiguous and git commands fail with "ambiguous object name".
+func TestBaseRefQualifiesRemoteRef(t *testing.T) {
+	localDir, staleA, freshB := setupRepoWithStaleMain(t)
+
+	wm, err := NewManager(localDir)
+	if err != nil {
+		t.Fatalf("NewManager failed: %v", err)
+	}
+	if err := wm.Fetch(); err != nil {
+		t.Fatalf("Fetch failed: %v", err)
+	}
+
+	// Pathological but valid: a local branch literally named origin/main, at the
+	// stale commit. This makes the short name "origin/main" ambiguous.
+	runGit(t, localDir, "branch", "origin/main", staleA)
+
+	if base := wm.BaseRef("main"); base != "refs/remotes/origin/main" {
+		t.Errorf("BaseRef = %q, want fully-qualified refs/remotes/origin/main", base)
+	}
+
+	wt, err := wm.Create("feature")
+	if err != nil {
+		t.Fatalf("Create failed (ambiguous ref?): %v", err)
+	}
+	if head := gitOut(t, wt.Path, "rev-parse", "HEAD"); head != freshB {
+		t.Errorf("worktree HEAD = %s, want fresh origin/main %s (not stale local origin/main %s)",
+			head, freshB, staleA)
+	}
+}
+
 // setupRepoWithUpstreamMerge builds a local clone where origin/<default> is
 // ahead of a stale local default branch and contains a merge of a "feature"
 // branch (which also exists locally). It returns the local repo path. This is
@@ -149,9 +182,9 @@ func TestIsBranchMergedUsesResolvedBaseForStaleLocalMain(t *testing.T) {
 		t.Fatalf("NewManager failed: %v", err)
 	}
 
-	// The clean.go path: the base must resolve to origin/main here.
-	if base := wm.BaseRef("main"); base != "origin/main" {
-		t.Fatalf("BaseRef(main) = %q, want origin/main", base)
+	// The clean.go path: the base must resolve to the fetched origin tip here.
+	if base := wm.BaseRef("main"); base != "refs/remotes/origin/main" {
+		t.Fatalf("BaseRef(main) = %q, want refs/remotes/origin/main", base)
 	}
 
 	// The remove.go path: feature is merged into origin/main, so despite the
