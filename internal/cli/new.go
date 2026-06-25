@@ -16,8 +16,10 @@ var newCmd = &cobra.Command{
 	Long: `Create a new git worktree with the specified name.
 
 This will:
-1. Fetch and pull the default branch (main/master)
-2. Create a new worktree with a branch named <name>
+1. Fetch the latest changes from origin
+2. Create a new worktree with a branch named <name>, based on the latest
+   origin/<default-branch> (falling back to the local default branch when
+   there is no remote)
 3. Enter a subshell in the new worktree directory
 
 Exit the subshell to return to your original directory.`,
@@ -50,14 +52,15 @@ func runNew(cmd *cobra.Command, args []string) error {
 		info("Could not fetch (offline?)")
 	}
 
-	// Pull default branch in main repo
+	// Detect the default branch (main/master); the worktree is based on the
+	// freshly fetched origin/<default> tip, so no local pull is required.
 	defaultBranch, err := wm.DefaultBranch()
 	if err != nil {
 		errorMsg("Could not detect default branch: %v", err)
 		return err
 	}
 
-	info("Creating worktree: %s (based on %s)", name, defaultBranch)
+	info("Creating worktree: %s (default branch %s)", name, defaultBranch)
 
 	wt, err := wm.Create(name)
 	if err != nil {
@@ -65,7 +68,11 @@ func runNew(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	success("Created worktree at %s", wt.Path)
+	if wt.Base != "" {
+		success("Created worktree at %s (based on %s)", wt.Path, wt.Base)
+	} else {
+		success("Created worktree at %s", wt.Path)
+	}
 
 	// Warn if .worktrees is not in .gitignore
 	if !wm.IsWorktreeDirIgnored() {
