@@ -23,6 +23,7 @@ ygg
 
 # Ygg worktree manager
 .ygg/
+.worktrees/
 
 # IDE
 .vscode/

@@ -12,6 +12,7 @@ A simple CLI tool for managing git worktrees. Create feature branches in isolate
 
 ```bash
 brew tap joch/ygg
+brew trust joch/ygg   # Homebrew 6.0.0+ requires trusting non-official taps
 brew install ygg
 ```
 
