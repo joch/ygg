@@ -33,6 +33,28 @@ func init() {
 	cleanCmd.Flags().BoolVarP(&cleanDry, "dry-run", "n", false, "Show what would be removed without removing")
 }
 
+// selectMergedWorktrees returns the worktrees eligible for cleanup: non-primary
+// worktrees whose branch is in the merged set. The default branch is never a
+// candidate (MergedBranches no longer self-filters it now that it measures
+// against a fully-qualified ref).
+func selectMergedWorktrees(worktrees []*worktree.Worktree, mergedBranches []string, defaultBranch string) []*worktree.Worktree {
+	mergedSet := make(map[string]bool, len(mergedBranches))
+	for _, b := range mergedBranches {
+		mergedSet[b] = true
+	}
+
+	var toRemove []*worktree.Worktree
+	for _, wt := range worktrees {
+		if wt.IsPrimary || wt.Branch == defaultBranch {
+			continue
+		}
+		if mergedSet[wt.Branch] {
+			toRemove = append(toRemove, wt)
+		}
+	}
+	return toRemove
+}
+
 func runClean(cmd *cobra.Command, args []string) error {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -66,20 +88,7 @@ func runClean(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	mergedSet := make(map[string]bool)
-	for _, b := range mergedBranches {
-		mergedSet[b] = true
-	}
-
-	var toRemove []*worktree.Worktree
-	for _, wt := range worktrees {
-		if wt.IsPrimary {
-			continue
-		}
-		if mergedSet[wt.Branch] {
-			toRemove = append(toRemove, wt)
-		}
-	}
+	toRemove := selectMergedWorktrees(worktrees, mergedBranches, defaultBranch)
 
 	if len(toRemove) == 0 {
 		info("No merged worktrees to clean up")
