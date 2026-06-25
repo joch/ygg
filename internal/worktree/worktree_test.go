@@ -97,6 +97,85 @@ func TestCreateBasesOnFreshOrigin(t *testing.T) {
 	}
 }
 
+// setupRepoWithUpstreamMerge builds a local clone where origin/<default> is
+// ahead of a stale local default branch and contains a merge of a "feature"
+// branch (which also exists locally). It returns the local repo path. This is
+// the "merged a PR but forgot to pull main" scenario.
+func setupRepoWithUpstreamMerge(t *testing.T) string {
+	t.Helper()
+	tmp := t.TempDir()
+	originDir := filepath.Join(tmp, "origin.git")
+	localDir := filepath.Join(tmp, "local")
+	otherDir := filepath.Join(tmp, "other")
+
+	runGit(t, tmp, "init", "-q", "--bare", "--initial-branch=main", originDir)
+
+	runGit(t, tmp, "clone", "-q", originDir, localDir)
+	runGit(t, localDir, "config", "user.email", "test@test.com")
+	runGit(t, localDir, "config", "user.name", "Test")
+	runGit(t, localDir, "checkout", "-q", "-b", "main")
+	runGit(t, localDir, "commit", "-q", "--allow-empty", "-m", "commit A")
+	runGit(t, localDir, "push", "-q", "-u", "origin", "main")
+	runGit(t, localDir, "remote", "set-head", "origin", "-a")
+
+	// In a separate clone, merge a feature branch into main and push both, so
+	// origin/main advances past the local main with feature merged in.
+	runGit(t, tmp, "clone", "-q", originDir, otherDir)
+	runGit(t, otherDir, "config", "user.email", "other@test.com")
+	runGit(t, otherDir, "config", "user.name", "Other")
+	runGit(t, otherDir, "checkout", "-q", "-b", "feature")
+	runGit(t, otherDir, "commit", "-q", "--allow-empty", "-m", "feature work")
+	runGit(t, otherDir, "checkout", "-q", "main")
+	runGit(t, otherDir, "merge", "-q", "--no-ff", "-m", "merge feature", "feature")
+	runGit(t, otherDir, "push", "-q", "origin", "main")
+	runGit(t, otherDir, "push", "-q", "origin", "feature")
+
+	// Locally: fetch (origin/main now ahead, local main stays stale) and create
+	// a local feature branch tracking the fetched feature.
+	runGit(t, localDir, "fetch", "-q", "origin")
+	runGit(t, localDir, "branch", "feature", "origin/feature")
+	return localDir
+}
+
+// TestIsBranchMergedUsesResolvedBaseForStaleLocalMain verifies that merge
+// detection measures against origin/<default> (the resolved base) so a branch
+// merged upstream is recognized as merged even when local main is stale. This
+// keeps `ygg clean` / `ygg remove` consistent with `ygg new` basing on origin.
+func TestIsBranchMergedUsesResolvedBaseForStaleLocalMain(t *testing.T) {
+	localDir := setupRepoWithUpstreamMerge(t)
+
+	wm, err := NewManager(localDir)
+	if err != nil {
+		t.Fatalf("NewManager failed: %v", err)
+	}
+
+	// The clean.go path: the base must resolve to origin/main here.
+	if base := wm.BaseRef("main"); base != "origin/main" {
+		t.Fatalf("BaseRef(main) = %q, want origin/main", base)
+	}
+
+	// The remove.go path: feature is merged into origin/main, so despite the
+	// stale local main it must be reported as merged.
+	merged, err := wm.IsBranchMerged("feature")
+	if err != nil {
+		t.Fatalf("IsBranchMerged failed: %v", err)
+	}
+	if !merged {
+		t.Errorf("IsBranchMerged(feature) = false, want true (merged into origin/main)")
+	}
+
+	// Document the bug being fixed: against the stale local main it is missed.
+	stale, err := wm.MergedBranches("main")
+	if err != nil {
+		t.Fatalf("MergedBranches failed: %v", err)
+	}
+	for _, b := range stale {
+		if b == "feature" {
+			t.Fatal("precondition broken: stale local main already sees feature as merged")
+		}
+	}
+}
+
 // TestCreateUsesLocalWhenAheadOfOrigin verifies that when the local default
 // branch has commits not yet on origin (committed directly without pushing, or
 // fetch failed offline), the new worktree includes them rather than silently

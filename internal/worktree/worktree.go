@@ -91,15 +91,16 @@ func (m *Manager) DefaultBranch() (string, error) {
 	return "", fmt.Errorf("could not detect default branch")
 }
 
-// baseRef returns the ref a new worktree branch should be based on. It prefers
-// the freshly fetched origin/<defaultBranch> remote-tracking ref so creation
+// BaseRef returns the effective tip of the default branch — the ref new
+// worktrees are based on and that merge detection is measured against. It
+// prefers the freshly fetched origin/<defaultBranch> remote-tracking ref so it
 // reflects the latest upstream even when the local default branch is stale
 // (the common "forgot to pull" case) — but only when origin is ahead of, or
 // equal to, the local branch. When the local branch has commits origin lacks
 // (committed directly to it, or fetch failed offline), or the two have
 // diverged, the local branch wins so those commits are never silently dropped.
 // Falls back to the local branch name when no remote-tracking ref exists.
-func (m *Manager) baseRef(defaultBranch string) string {
+func (m *Manager) BaseRef(defaultBranch string) string {
 	remoteRef := "origin/" + defaultBranch
 	hasRemote := m.refExists("refs/remotes/" + remoteRef)
 	hasLocal := m.refExists("refs/heads/" + defaultBranch)
@@ -181,9 +182,9 @@ func (m *Manager) Create(name string) (*Worktree, error) {
 	} else {
 		// Base the new branch on the freshly fetched origin/<default> tip when
 		// it is ahead of the local branch (the "forgot to pull" case),
-		// otherwise on the local default branch — see baseRef. --no-track keeps
+		// otherwise on the local default branch — see BaseRef. --no-track keeps
 		// the new branch from adopting origin/<default> as its upstream.
-		base = m.baseRef(defaultBranch)
+		base = m.BaseRef(defaultBranch)
 		cmd = exec.Command("git", "worktree", "add", "--no-track", "-b", name, worktreePath, base)
 	}
 	cmd.Dir = m.repoPath
@@ -296,7 +297,9 @@ func (m *Manager) IsBranchMerged(branch string) (bool, error) {
 		return true, nil
 	}
 
-	merged, err := m.MergedBranches(defaultBranch)
+	// Measure against the resolved default tip (origin/<default> when local is
+	// stale) so a branch merged upstream is recognized even before a local pull.
+	merged, err := m.MergedBranches(m.BaseRef(defaultBranch))
 	if err != nil {
 		return false, err
 	}

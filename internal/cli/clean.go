@@ -57,8 +57,10 @@ func runClean(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Find merged branches
-	mergedBranches, err := wm.MergedBranches(defaultBranch)
+	// Find merged branches, measured against the resolved default tip
+	// (origin/<default> when local is stale) so branches merged upstream are
+	// detected consistently with how `ygg new` bases new worktrees.
+	mergedBranches, err := wm.MergedBranches(wm.BaseRef(defaultBranch))
 	if err != nil {
 		errorMsg("Failed to get merged branches: %v", err)
 		return err
